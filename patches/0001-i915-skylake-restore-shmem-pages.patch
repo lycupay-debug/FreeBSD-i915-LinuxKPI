@@ -1,0 +1,91 @@
+--- a/drivers/gpu/drm/i915/gem/i915_gem_pages.c
++++ b/drivers/gpu/drm/i915/gem/i915_gem_pages.c
+@@ -236,6 +236,76 @@
+ 	return pages;
+ }
+ 
++#ifdef __FreeBSD__
++/*
++ * A WB mmap-offset fault temporarily moves managed pages from the GEM
++ * shmem object into a cdev device-pager object.  FreeBSD's unmap path drops
++ * the device-pager association, but does not restore the original shmem
++ * association.  Reattach pages before the GEM backend drops its wire so a
++ * later shmem fault cannot allocate a zero-filled replacement page.
++ *
++ * Keep this first implementation scoped to the affected Skylake device
++ * family.  Widening the platform scope requires independent validation.
++ */
++static int
++i915_restore_skylake_shmem_pages(struct drm_i915_gem_object *obj)
++{
++	struct drm_i915_private *i915 = to_i915(obj->base.dev);
++	struct sgt_iter iter;
++	struct page *page;
++	vm_object_t backing;
++	vm_pindex_t pindex = 0;
++	int error = 0;
++
++	assert_object_held_shared(obj);
++	if (!IS_SKYLAKE(i915) || !i915_gem_object_is_shmem(obj) ||
++	    !i915_gem_object_has_struct_page(obj) ||
++	    obj->mm.madv != I915_MADV_WILLNEED ||
++	    kref_read(&obj->base.refcount) == 0 ||
++	    IS_ERR_OR_NULL(obj->mm.pages))
++		return (0);
++
++	backing = obj->base.filp->f_shmem;
++	VM_OBJECT_WLOCK(backing);
++	for_each_sgt_page(page, iter, obj->mm.pages) {
++		struct page *resident;
++
++		resident = vm_page_lookup(backing, pindex);
++		if (resident == page) {
++			pindex++;
++			continue;
++		}
++
++		/* Never overwrite another page or wait while holding this lock. */
++		if (resident != NULL || !vm_page_tryxbusy(page)) {
++			error = -EBUSY;
++			break;
++		}
++
++		/* The page must have been detached by the device-pager unmap. */
++		if (page->object != NULL) {
++			vm_page_xunbusy(page);
++			error = -EBUSY;
++			break;
++		}
++
++		if (vm_page_insert(page, backing, pindex) != 0) {
++			vm_page_xunbusy(page);
++			error = -ENOMEM;
++			break;
++		}
++
++		/* Preserve CPU writes when the page is later paged out. */
++		vm_page_dirty(page);
++		vm_page_xunbusy(page);
++		pindex++;
++	}
++	VM_OBJECT_WUNLOCK(backing);
++
++	return (error);
++}
++#endif
++
+ int __i915_gem_object_put_pages(struct drm_i915_gem_object *obj)
+ {
+ 	struct sg_table *pages;
+@@ -247,6 +317,11 @@
+ 	assert_object_held_shared(obj);
+ 
+ 	i915_gem_object_release_mmap_offset(obj);
++#ifdef __FreeBSD__
++	int restore_error = i915_restore_skylake_shmem_pages(obj);
++	if (restore_error != 0)
++		return (restore_error);
++#endif
+ 
+ 	/*
+ 	 * ->put_pages might need to allocate memory for the bit17 swizzle

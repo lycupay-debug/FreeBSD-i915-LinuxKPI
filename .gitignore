@@ -1,0 +1,5 @@
+*.o
+*.ko
+*.core
+core
+.DS_Store
