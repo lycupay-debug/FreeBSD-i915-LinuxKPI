@@ -51,19 +51,20 @@ The local candidate preserves this architecture but includes additional busy-loc
 
 The D59883 diff is a prototype, not a ready-to-apply production patch. Comparing it with the actual FreeBSD 15.1 implementation exposed busy-lock transitions that must be handled.
 
-### 3.1 Newly allocated fake page remains busy after insertion
+### 3.1 Newly allocated fake page must remain busy after insertion
 
 Local FreeBSD source facts:
 
 - vm_page_getfake() calls vm_page_initfake().
 - vm_page_initfake() initializes busy_lock to VPB_CURTHREAD_EXCLUSIVE.
 - vm_page_iter_insert() inserts the page into the object/radix tree and does not release the page busy lock.
+- linux_cdev_pager_populate() requires a successful fault callback to return with every populated page busy. Existing-page handling through vm_page_grab_iter() preserves that busy state.
 
-The D59883 special-PTE function allocates a fake page and inserts it, but the prototype does not call vm_page_xunbusy() after successful insertion.
+The first candidate draft incorrectly called vm_page_xunbusy() after successful insertion. That would violate the pager populate contract for newly allocated pages while the already-resident path returned a busy page.
 
-The candidate patch releases that exclusive busy state after the insertion and vm_page_valid(). This is required so later pager operations can acquire the page.
+The corrected candidate deliberately keeps the exclusive busy state after vm_page_valid() and returns it to the pager. The normal VM fault completion path owns the subsequent unbusy transition.
 
-On insertion failure, the page is still exclusively busy, so vm_page_putfake() can release it directly.
+On insertion failure, the page was never published into the object and remains exclusively busy, so vm_page_putfake() can release it directly.
 
 ### 3.2 Managed-device pager removal releases busy before putfake
 
