@@ -115,3 +115,11 @@ Additional source-only checks completed after the initial draft:
 - Reviewed vm_page_tryxbusy(): it is non-sleeping and returns 1 when exclusive busy acquisition succeeds. The candidate uses it after pager/object removal rather than a potentially sleeping busy-acquire path.
 
 These checks improve confidence in patch context and the intended lock-state transitions. They do not replace a compile, INVARIANTS validation, runtime testing, or upstream review.
+
+## 8. Pager busy-state correction — 2026-11-05
+
+A source audit found that the first candidate draft released the newly inserted fake page's exclusive busy state before returning from the Linux VMA fault callback. This contradicted the explicit contract in linux_cdev_pager_populate(): a successful populate callback must return with every populated page busy. The existing-page path already retained busy ownership through vm_page_grab_iter().
+
+The candidate patch has been corrected to retain the allocation-time exclusive busy state after vm_page_iter_insert() and vm_page_valid(). The normal VM fault completion path is responsible for releasing it. The correction is reflected in UPSTREAM_ANALYSIS.md and PATCH_DESIGN.md.
+
+This source-level correction has not yet been re-run through the patch dry-run. No build, installation, module load, reboot, or GPU runtime test has been performed.
