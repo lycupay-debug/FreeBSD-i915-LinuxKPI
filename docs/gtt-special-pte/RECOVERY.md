@@ -14,7 +14,7 @@ Working branch:
 
 The GTT special-PTE work is separate from the existing main-branch GEM shmem-page patch.
 
-The branch is now published on GitHub. Its remote head is d58e8098a317fe800da8a26b90fc689e34c70059. The source can be restored after a system snapshot rollback by cloning or fetching the repository again.
+The branch is now published on GitHub. Use git ls-remote origin refs/heads/gtt-special-pte-20261105 to inspect its current head. The source can be restored after a system snapshot rollback by cloning or fetching the repository again.
 
 ## 2. Fresh clone
 
@@ -96,9 +96,7 @@ The GitHub branch is published:
 
     gtt-special-pte-20261105
 
-Remote branch head at the time of this record:
-
-    d58e8098a317fe800da8a26b90fc689e34c70059
+Published history includes the initial source and documentation commit (94a42eda50c08d3d4e5d13aea2e37e79cbc94dac), the executable-mode correction (d58e8098a317fe800da8a26b90fc689e34c70059), and the recovery-document update (40a102c9bf691d539275b1cfc2541f474c837c6e).
 
 The laptop's local working branch contains the same source tree under local commit 9865db7 (tree e31ed165262564a9d94e822dbb134ff1878a8676). The GitHub connector published an equivalent tree with a different commit history. Direct git push/fetch from the laptop encountered an HTTPS TLS unexpected-EOF error; remote publication was verified through the connected GitHub integration.
 
