@@ -14,7 +14,7 @@ diff --git a/sys/compat/linuxkpi/common/include/linux/mm.h b/sys/compat/linuxkpi
 diff --git a/sys/compat/linuxkpi/common/src/linux_page.c b/sys/compat/linuxkpi/common/src/linux_page.c
 --- a/sys/compat/linuxkpi/common/src/linux_page.c
 +++ b/sys/compat/linuxkpi/common/src/linux_page.c
-@@ -644,6 +644,73 @@
+@@ -644,6 +644,71 @@
  	return (0);
  }
  
@@ -68,11 +68,9 @@ diff --git a/sys/compat/linuxkpi/common/src/linux_page.c b/sys/compat/linuxkpi/c
 +		}
 +		vm_page_valid(fake_page);
 +		/*
-+		 * vm_page_getfake_nowait() returns an exclusively busy page.
-+		 * vm_page_iter_insert() does not release that busy state.
-+		 * Publish the page as resident only after dropping our busy lock.
++		 * Keep the page exclusively busy.  The managed-device pager
++		 * populate callback must return with every populated page busy.
 +		 */
-+		vm_page_xunbusy(fake_page);
 +	} else {
 +		/*
 +		 * The first insertion at this object index wins.  As with the
