@@ -105,3 +105,25 @@ The test writes to i915 debugfs `i915_gem_drop_caches` and deliberately triggers
 ## License
 
 GPL-2.0-only. See `LICENSE`. The patch modifies Linux i915 code and is distributed under GPL-2.0-only. The repository uses the same license for the standalone reproducer and documentation for simplicity.
+
+## Second investigation: i915 GTT special-PTE handling
+
+A second, separate investigation documents two kernel panics on 2026-11-05 during an assistant-started FFmpeg VA-API hwupload test. Both vmcores show the i915 GTT fault path entering the ordinary LinuxKPI PFN insertion function with a device-I/O PFN. Offline KGDB analysis mapped the PFN to the Intel GMADR aperture and to an invalid dense vm_page_array slot.
+
+The candidate fix adds a LinuxKPI/FreeBSD VM special-PTE API backed by explicitly owned fictitious pages, then switches the FreeBSD i915 remap_pfn() and remap_sg() callers to that API. This work is independent of the existing GEM shmem-page restoration patch.
+
+**Current status: candidate patch series; source-context dry run passed; no kernel build, module build, installation, load, or runtime validation has been performed.** The upstream D59883 review remains a prototype marked Needs Review in the status snapshot recorded on 2026-11-05. The local adaptation also addresses fake-page busy-lock lifecycle issues found during source review.
+
+Detailed records:
+
+- docs/gtt-special-pte/ROOT_CAUSE.md — incident timeline, vmcore hashes, panic stacks, PFN/GMADR arithmetic, and root-cause evidence.
+- docs/gtt-special-pte/UPSTREAM_ANALYSIS.md — Linux special-PTE semantics, D59883/D59506/D53412/D58320 comparisons, and prototype lifecycle review.
+- docs/gtt-special-pte/PATCH_DESIGN.md — API design, patch split, object/page lifecycle, busy-lock state transitions, and review questions.
+- docs/gtt-special-pte/VALIDATION.md — completed checks, explicit unverified status, and staged build/runtime validation plan.
+- docs/gtt-special-pte/RECOVERY.md — Git recovery, patch application order, and source-only reversal.
+- compatibility/FREEBSD-15.1-DRM-6.12.85.md — exact target compatibility baseline.
+- patches/gtt-special-pte/ — independent LinuxKPI/VM and i915 caller patches.
+
+Do not run the previous FFmpeg hwupload test on the active installation. Do not install or load these candidate patches until the source review, build validation, and a separate deployment decision are complete.
+
+- tests/gtt-special-pte/check-patches.sh — non-mutating patch-context dry-run for the FreeBSD and drm-kmod source roots.

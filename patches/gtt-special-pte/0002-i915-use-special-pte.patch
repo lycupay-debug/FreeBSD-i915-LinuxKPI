@@ -1,0 +1,20 @@
+diff --git a/drivers/gpu/drm/i915/i915_mm.c b/drivers/gpu/drm/i915/i915_mm.c
+--- a/drivers/gpu/drm/i915/i915_mm.c
++++ b/drivers/gpu/drm/i915/i915_mm.c
+@@ -99,7 +99,7 @@ static int remap_sg(pte_t *pte, unsigned long addr, void *data)
+ 		   pte_mkspecial(pfn_pte(sgt_pfn(r), r->prot)));
+ #elif defined(__FreeBSD__)
+ 	vm_fault_t ret =
+-	    lkpi_vmf_insert_pfn_prot_locked(r->vma, addr, sgt_pfn(r), r->prot);
++	    lkpi_vmf_insert_special_pte_locked(r->vma, addr, sgt_pfn(r), r->prot);
+ 	if ((ret & VM_FAULT_OOM) != 0)
+ 		return -ENOMEM;
+ 	if ((ret & VM_FAULT_ERROR) != 0)
+@@ -126,7 +126,7 @@ static int remap_pfn(pte_t *pte, unsigned long addr, void *data)
+ #elif defined(__FreeBSD__)
+ 	vm_fault_t ret;
+-	ret = lkpi_vmf_insert_pfn_prot_locked(r->vma, addr, r->pfn, r->prot);
++	ret = lkpi_vmf_insert_special_pte_locked(r->vma, addr, r->pfn, r->prot);
+ 	if ((ret & VM_FAULT_OOM) != 0)
+ 		return -ENOMEM;
+ 	if ((ret & VM_FAULT_ERROR) != 0)
