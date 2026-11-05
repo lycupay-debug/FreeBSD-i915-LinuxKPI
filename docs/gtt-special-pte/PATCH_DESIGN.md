@@ -74,9 +74,9 @@ The new API:
 5. If absent, allocates a fictitious page with the requested PFN and cache mode.
 6. Marks the page VPO_FAKE_OWNED so the VM cleanup paths know that this object owns the fake allocation.
 7. Inserts it into the managed-device object.
-8. Marks it valid and releases the allocation-time exclusive busy lock.
-9. If a page already exists at that index, preserves the first insertion and updates its memory attribute.
-10. Increments vm_pfn_count and returns VM_FAULT_NOPAGE.
+8. Marks it valid and deliberately retains the allocation-time exclusive busy lock. The managed-device pager populate contract requires the callback to return with populated pages busy.
+9. If a page already exists at that index, vm_page_grab_iter() returns it busy; the function preserves the existing entry and updates its memory attribute.
+10. Increments vm_pfn_count and returns VM_FAULT_NOPAGE with the page still busy.
 
 The function never calls PHYS_TO_VM_PAGE() for the requested special PFN.
 
@@ -113,12 +113,12 @@ This distinction is essential: the fake vm_page is not a claim that the GMADR ad
     vm_page_valid()
         |
         v
-    vm_page_xunbusy()
+    return to linux_cdev_pager_populate with exclusive busy held
         |
         v
-    resident in OBJT_MGTDEVICE object
+    normal VM fault completion releases busy ownership
 
-The explicit vm_page_xunbusy() is important. vm_page_initfake() creates the fake page with the current thread holding exclusive busy ownership. vm_page_iter_insert() does not release that lock.
+Do not call vm_page_xunbusy() after successful insertion. vm_page_initfake() creates the fake page with the current thread holding exclusive busy ownership, and vm_page_iter_insert() preserves it. linux_cdev_pager_populate() requires the fault callback to return with every populated page busy; the normal VM fault completion path releases that ownership later.
 
 ### 6.2 Insertion failure
 
@@ -157,7 +157,7 @@ The busy acquisition is required by the local vm_page_putfake() contract. The lo
 | Operation | Page state on entry | Operation | State on exit |
 |---|---|---|---|
 | vm_page_getfake_nowait | not allocated | allocate + initfake | exclusively busy |
-| successful special insert | exclusively busy | insert, validate, xunbusy | resident, unbusied |
+| successful special insert | exclusively busy | insert and validate; retain busy for pager contract | resident, exclusively busy |
 | failed special insert | exclusively busy | vm_page_putfake | returned to UMA zone |
 | managed pager removal | exclusively busy from busy_acquire | iter_remove | removed, unbusied |
 | fake page release after pager removal | unbusied | busy_acquire + putfake | returned to UMA zone |
