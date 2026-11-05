@@ -14,7 +14,7 @@ Working branch:
 
 The GTT special-PTE work is separate from the existing main-branch GEM shmem-page patch.
 
-Once the branch is pushed to GitHub, the source can be restored after a system snapshot rollback by cloning or fetching the repository again.
+The branch is now published on GitHub. Its remote head is d58e8098a317fe800da8a26b90fc689e34c70059. The source can be restored after a system snapshot rollback by cloning or fetching the repository again.
 
 ## 2. Fresh clone
 
@@ -89,3 +89,23 @@ The user reported that a snapshot was created before the FFmpeg test. Its exact 
 ## 8. Safety boundary
 
 These instructions do not authorize patch application, kernel build, module installation, module loading, service restart, or reboot. Those are separate operations requiring review and an explicit deployment decision.
+
+## 9. Published branch state — 2026-11-05
+
+The GitHub branch is published:
+
+    gtt-special-pte-20261105
+
+Remote branch head at the time of this record:
+
+    d58e8098a317fe800da8a26b90fc689e34c70059
+
+The laptop's local working branch contains the same source tree under local commit 9865db7 (tree e31ed165262564a9d94e822dbb134ff1878a8676). The GitHub connector published an equivalent tree with a different commit history. Direct git push/fetch from the laptop encountered an HTTPS TLS unexpected-EOF error; remote publication was verified through the connected GitHub integration.
+
+For a fresh clone, use the normal clone procedure above. If an existing clone already has a local branch named gtt-special-pte-20261105 and that branch differs from origin after fetch, do not run pull blindly. First preserve the local branch:
+
+    git status --short
+    git branch -m gtt-special-pte-20261105 gtt-special-pte-20261105-local-backup
+    git switch --track -c gtt-special-pte-20261105 origin/gtt-special-pte-20261105
+
+Only rename the local branch after confirming there are no uncommitted changes. This preserves the local history while creating a clean tracking branch from GitHub.
