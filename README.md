@@ -111,3 +111,15 @@ GPL-2.0-only. See `LICENSE`. The patch modifies Linux i915 code and is distribut
 A second candidate patch, `patches/0002-i915-freebsd-gem-shmem-page-restore.patch`, ports the FreeBSD shmem backing-page restoration helper beyond the original Skylake-only guard. It retains the shmem/struct-page/WILLNEED/refcount/pages checks and does not target TTM or LMEM.
 
 The same 4 MiB WB mmap / WILLNEED / DROP_UNBOUND reproducer observed `RESULT=DATA_LOSS` on a Meteor Lake-P system running FreeBSD 15.2-BETA2 and `drm-612-kmod 6.12.85.1502000_3`. The candidate patch applies to the exact 6.12.85 source and the `i915kms.ko` candidate builds successfully. Runtime validation on Meteor Lake has **not** been performed; the candidate module has not been installed or loaded. See `docs/INVESTIGATION.md` for source/API review, build evidence, and the required A/B validation gate.
+
+### Building and running the regression test
+
+Build the userland test on FreeBSD with libdrm installed:
+
+```sh
+make -C tests
+```
+
+The runner supports `ITERATIONS`, `TEST_BIN`, `MODULE`, `EXPECTED_SHA256`, `MOUNTPOINT`, and `DROP_CACHES_NODE`. It verifies the on-disk module file hash when `EXPECTED_SHA256` is supplied, but that hash alone does not identify an already-loaded kernel image. The runner explicitly prints this limitation. Each iteration writes a 4 MiB deterministic pattern, triggers `DROP_UNBOUND`, checks WILLNEED retention, and verifies the entire mapping.
+
+Do not run the test during important graphics workloads: `DROP_UNBOUND` affects the i915 GEM shrinker globally, not only the test object. The candidate requires a controlled module A/B and reboot before it can be runtime-validated.

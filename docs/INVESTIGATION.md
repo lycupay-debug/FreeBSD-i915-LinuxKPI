@@ -102,3 +102,19 @@ Status: patch applies and candidate module builds; runtime regression is **not y
 - GitHub CLI OAuth status was verified for `lycupay-debug`; Git HTTPS credential integration was configured with `gh auth setup-git`.
 - Pull request has not been created.
 - The worktree was clean after push.
+
+### Regression harness and rollback preparation (2026-11-17)
+
+- Added `tests/Makefile`; `make -C tests clean all` succeeded on FreeBSD 15.2-BETA2 with `-Wall -Wextra -Werror` and system libdrm 2.4.134.
+- Updated the C reproducer to take the debugfs node from `DROP_CACHES_NODE`, write exactly the two command bytes (`1\n`) to `DROP_UNBOUND`, close the GEM handle, and release mappings/file descriptors on all exits.
+- Updated the runner with positive `ITERATIONS` validation, configurable debugfs node, on-disk module SHA-256 guard, metadata output, and an explicit warning that the on-disk module file hash does not prove the identity of the already-loaded kernel image.
+- `sh -n tests/run-gem-wb-shmem-test.sh` passed.
+- The runner's hash guard was tested with an intentionally incorrect expected hash; it rejected the current baseline module with exit status 2 before mounting debugfs or triggering shrink.
+- The GEM regression itself was not run during this stage because it triggers global `DROP_UNBOUND` and the current system is an active desktop. The earlier baseline DATA_LOSS reproduction remains the evidence for the unpatched driver.
+- Prepared, but did not execute, candidate and rollback artifacts under `/home/dll/Downloads/i915-mtl-shmem-restore-20261117/`. Original on-disk module SHA-256: `d8569101411a2e97ae18625fbe153a61d97d6f7a5968099b8cb38759d7faf8f5`. Candidate SHA-256: `110d696361b2b476fbdfc8643968c7208c506250d609fe1e13c8a9438016bf0d`.
+- The install and rollback scripts require explicit confirmation environment variables, verify exact hashes, never reboot, and preserve a copy of the pre-swap on-disk module. Both scripts passed `sh -n`.
+- Verified after preparation that `/boot/modules/i915kms.ko` still has the original hash and `kldstat` still reports the currently loaded i915kms module. No module was installed, loaded, unloaded, or rebooted.
+
+### Current validation status
+
+The patch source and module build are verified. The userland test harness now compiles cleanly and has guard-path validation. Candidate runtime behavior on Meteor Lake is **not yet tested**. A controlled test still requires explicit authorization to replace the on-disk module and reboot into it; keep the original module and recovery scripts available. A separate RCS0 hang investigation remains independent and unresolved.

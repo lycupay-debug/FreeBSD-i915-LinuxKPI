@@ -3,3 +3,6 @@
 *.core
 core
 .DS_Store
+
+# Locally built FreeBSD test binary
+tests/gem_wb_shmem_roundtrip
