@@ -105,3 +105,9 @@ The test writes to i915 debugfs `i915_gem_drop_caches` and deliberately triggers
 ## License
 
 GPL-2.0-only. See `LICENSE`. The patch modifies Linux i915 code and is distributed under GPL-2.0-only. The repository uses the same license for the standalone reproducer and documentation for simplicity.
+
+## Meteor Lake port (2026-11-17)
+
+A second candidate patch, `patches/0002-i915-freebsd-gem-shmem-page-restore.patch`, ports the FreeBSD shmem backing-page restoration helper beyond the original Skylake-only guard. It retains the shmem/struct-page/WILLNEED/refcount/pages checks and does not target TTM or LMEM.
+
+The same 4 MiB WB mmap / WILLNEED / DROP_UNBOUND reproducer observed `RESULT=DATA_LOSS` on a Meteor Lake-P system running FreeBSD 15.2-BETA2 and `drm-612-kmod 6.12.85.1502000_3`. The candidate patch applies to the exact 6.12.85 source and the `i915kms.ko` candidate builds successfully. Runtime validation on Meteor Lake has **not** been performed; the candidate module has not been installed or loaded. See `docs/INVESTIGATION.md` for source/API review, build evidence, and the required A/B validation gate.

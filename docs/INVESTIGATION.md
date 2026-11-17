@@ -44,3 +44,52 @@ This is one successful post-reboot regression run, not proof of multi-day stabil
 ## Recovery cautions
 
 Keep an original known-good `i915kms.ko`, verify its checksum, and preserve a recovery script before installation. Build against the exact target source/configuration/revision. Ensure local console or alternate recovery access. Replacing a module on disk does not replace the already-loaded module; reboot manually when ready. Package upgrades/reinstalls may overwrite a manually patched module. Do not treat this as a maintained package until reproducible packaging is implemented.
+
+## Meteor Lake shmem-page restoration port (2026-11-17)
+
+### Platform and reproduction evidence
+
+- FreeBSD 15.2-BETA2, amd64 (`kern.osreldate=1502000`).
+- Intel Core Ultra 5 125H / Meteor Lake-P integrated graphics, PCI ID `8086:7d55`.
+- Installed baseline package: `drm-612-kmod-6.12.85.1502000_3`.
+- GEM 4 MiB WB mmap test: initial write/read and pattern verification passed; `DROP_UNBOUND` was triggered; `WILLNEED retained=1`; after shrink the first 64-bit word was zero and the test reported `RESULT=DATA_LOSS`.
+- No new GPU HANG was observed in the before/after dmesg window. The reproducer does not submit a GPU command buffer. This establishes the GEM backing-page data-loss regression on this MTL setup, not a causal explanation for RCS0 hangs.
+
+### Port scope and source review
+
+Added `patches/0002-i915-freebsd-gem-shmem-page-restore.patch`, derived from the existing Skylake patch and applied to the exact drm-kmod 6.12.85 source tree at:
+
+`/opt/i915-mtl-upstream-audit-20261117/drm-kmod/source-6.12.85/drm-kmod-drm_v6.12.85_3`
+
+The port removes only the `IS_SKYLAKE(i915)` hardware-family restriction and renames the helper to `i915_restore_shmem_pages`. It retains the shmem-backend, struct-page, WILLNEED, live-reference, and valid-pages guards. It does not extend to TTM or LMEM backends. The helper remains FreeBSD-only and runs after mmap-offset release but before the GEM backend drops the pages.
+
+FreeBSD 15.2-BETA2 VM source review confirmed:
+
+- `vm_page_tryxbusy()` returns 1 on success and 0 on failure; the helper's negated test handles failure.
+- `vm_page_insert()` returns 0 on success and 1 when radix insertion fails; the helper treats nonzero as failure.
+- `vm_page_insert_lookup()` clears the tentative object association if radix insertion fails.
+
+The helper holds the shmem backing object's write lock, does not wait for page busy ownership, skips pages already resident at the expected index, refuses to overwrite another resident page, requires the page to be detached, reinserts it, marks it dirty, and releases exclusive busy ownership. If a later page cannot be restored, the function returns an error; already restored pages remain resident and are skipped on a subsequent attempt. Error-path and concurrency behavior still require runtime stress validation.
+
+### Build evidence
+
+- Patch application to a fresh copy of the exact 6.12.85 source succeeded (`patch -p1`, both hunks).
+- Candidate source/build directory: `/opt/i915-mtl-upstream-audit-20261117/build/drm612-shmem-restore-candidate`.
+- Build command: `make -j4 KMODS="dmabuf ttm drm i915"`.
+- Build result: exit status 0; `i915kms.ko` linked successfully; no compiler warning/error lines were found in `/var/tmp/i915-shmem-build.log`.
+- Candidate module: `.../build/drm612-shmem-restore-candidate/i915/i915kms.ko`.
+- Candidate module SHA-256: `110d696361b2b476fbdfc8643968c7208c506250d609fe1e13c8a9438016bf0d`.
+- `kldxref -d` successfully read the module metadata and reported expected dependencies, including kernel.1502000, drmn.2, ttm.1, linuxkpi.1, and dmabuf.1.
+- Candidate module was not installed, loaded, or used to reboot the laptop. The `kldstat` observation was read-only and reflects the already-running system module, not this candidate.
+
+### Validation boundary / next gate
+
+Status: patch applies and candidate module builds; runtime regression is **not yet verified** on MTL. The next validation gate is a controlled A/B run of the existing `tests/run-gem-wb-shmem-test.sh` against the candidate module, with a known-good rollback path and explicit approval before module replacement/loading/reboot. Repeat cycles, multiple GEM objects, memory pressure, concurrent mmap/unmap, and error-path stress are also unverified. Do not describe this port as a proven fix until those tests pass.
+
+### Repository state
+
+- Repository: `/opt/FreeBSD-i915-LinuxKPI`.
+- Branch: `fix/freebsd-mtl-shmem-page-restore`.
+- Base commit: `26fffe3c38740a8e52768aa0bdfa7d37c139277d`.
+- GitHub CLI OAuth login verified for `lycupay-debug`; HTTPS Git protocol selected.
+- At the time of this record, the port patch and investigation update are local changes; commit and push are pending final diff review.
