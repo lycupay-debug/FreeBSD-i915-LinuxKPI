@@ -93,3 +93,12 @@ Status: patch applies and candidate module builds; runtime regression is **not y
 - Base commit: `26fffe3c38740a8e52768aa0bdfa7d37c139277d`.
 - GitHub CLI OAuth login verified for `lycupay-debug`; HTTPS Git protocol selected.
 - At the time of this record, the port patch and investigation update are local changes; commit and push are pending final diff review.
+
+### Git publication (2026-11-17)
+
+- Commit: `a68251e54cf7cea2905810a042a44f4aae4e72b9` (`Port GEM shmem page restoration to Meteor Lake`).
+- Branch pushed successfully: `origin/fix/freebsd-mtl-shmem-page-restore`.
+- Remote `git ls-remote` confirmed the branch points to the same commit.
+- GitHub CLI OAuth status was verified for `lycupay-debug`; Git HTTPS credential integration was configured with `gh auth setup-git`.
+- Pull request has not been created.
+- The worktree was clean after push.
