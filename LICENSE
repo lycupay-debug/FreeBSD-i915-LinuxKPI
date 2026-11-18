@@ -1,9 +1,20 @@
-This repository contains components under different licenses. No single license applies to every file.
+# License
 
-## License map
+This repository's project-authored material is licensed under the MIT License.
+See [LICENSES/MIT.txt](LICENSES/MIT.txt).
 
-- `patches/0001-*.patch` and `patches/0002-*.patch` modify the upstream i915 file `drivers/gpu/drm/i915/gem/i915_gem_pages.c`, whose SPDX identifier is MIT in both Linux v6.12 and FreeBSD drm-kmod's drm_v6.12.85 branch. The upstream source retains its MIT terms and copyright notices. The project-authored additions in these patch files are licensed under BSD-2-Clause. See [LICENSES/MIT.txt](LICENSES/MIT.txt) and [LICENSES/BSD-2-Clause.txt](LICENSES/BSD-2-Clause.txt).
-- `tests/*` (standalone reproducer, runner, and Makefile): BSD-2-Clause for project-authored portions.
-- `README.md`, `docs/*`, and `patches/README.md`: BSD-2-Clause for project-authored documentation.
+## Upstream material and provenance
 
-The FreeBSD source tree contains files under multiple licenses; BSD-2-Clause is a common license used in the project, not a single blanket license for every FreeBSD or drm-kmod file. This repository does not relicense upstream Linux/FreeBSD DRM source code. Preserve all upstream copyright and license notices when applying or redistributing the patch.
+The patch files modify the upstream i915 source file
+`drivers/gpu/drm/i915/gem/i915_gem_pages.c`. That source file is marked
+`SPDX-License-Identifier: MIT` in Linux v6.12 and FreeBSD drm-kmod's
+`drm_v6.12.85` source. Its original copyright and MIT notice remain applicable
+and must be preserved.
+
+The newly authored patch additions, regression test program, test runner,
+Makefile, and project documentation are also offered under MIT by this
+repository's contributors. This is a license for the project-authored
+contributions; it does not change the provenance or license of upstream code.
+
+No GPL relicensing is intended. Do not remove or replace upstream copyright
+notices when applying or redistributing the patches.
