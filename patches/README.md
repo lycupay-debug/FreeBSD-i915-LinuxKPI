@@ -15,7 +15,7 @@ git checkout drm_v6.12.85
 git status --short
 ```
 
-The FreeBSD kernel source under `/usr/src` must match the target kernel. Verify the installed kernel and source tree before building; do not assume that a matching DRM tag alone guarantees ABI compatibility.
+The FreeBSD kernel source under `/usr/src` must match the target kernel. The `drm_v6.12.85` tag is the upstream base reference; the documented package baselines also include FreeBSD port/package revision changes (15.1: `1501000_2`; 15.2-BETA2: `1502000_3`). A bare tag checkout is not proof that those package-specific changes are present. Use the exact source tree corresponding to the target package baseline, then require `git apply --check` to pass before applying. Verify the installed kernel and source tree before building; do not assume that a matching DRM tag alone guarantees ABI compatibility.
 
 ## Meteor Lake candidate: `0002-i915-freebsd-gem-shmem-page-restore.patch`
 
@@ -87,4 +87,4 @@ Preserve the original module, its checksum, and a tested recovery path before re
 
 ## Licensing
 
-The target upstream file `drivers/gpu/drm/i915/gem/i915_gem_pages.c` is marked `SPDX-License-Identifier: MIT` in Linux v6.12 and FreeBSD drm-kmod's drm_v6.12.85 branch. The patch does not replace that upstream license or remove Intel's copyright notice. Project-authored additions in the patch are licensed under MIT. See the repository's [LICENSE](../LICENSE), [MIT notice](../LICENSES/MIT.txt), and [MIT license](../LICENSES/MIT.txt).
+The target upstream file `drivers/gpu/drm/i915/gem/i915_gem_pages.c` is marked `SPDX-License-Identifier: MIT` in Linux v6.12 and FreeBSD drm-kmod's drm_v6.12.85 branch. The patch does not replace that upstream license or remove Intel's copyright notice. Project-authored additions in the patch are licensed under MIT. See the repository's [LICENSE](../LICENSE) and [MIT license text](../LICENSES/MIT.txt).
