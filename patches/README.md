@@ -49,3 +49,8 @@ The patch and GuC 1 were enabled together during a period without the previously
 ## Recovery
 
 Preserve the original module, its checksum, and a tested recovery path before replacing any kernel module. Do not automatically unload, replace, or reboot as part of applying this patch. If the desktop fails to start, use the local console/recovery procedure and restore the exact known-good module.
+
+
+## Licensing
+
+The target upstream file `drivers/gpu/drm/i915/gem/i915_gem_pages.c` is marked `SPDX-License-Identifier: MIT` in Linux v6.12 and FreeBSD drm-kmod's drm_v6.12.85 branch. The patch does not replace that upstream license or remove Intel's copyright notice. Project-authored additions in the patch are licensed under BSD-2-Clause. See the repository's [LICENSE](../LICENSE), [MIT notice](../LICENSES/MIT.txt), and [BSD-2-Clause license](../LICENSES/BSD-2-Clause.txt).
