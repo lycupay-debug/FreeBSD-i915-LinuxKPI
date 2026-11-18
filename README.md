@@ -1,125 +1,115 @@
+<!-- SPDX-License-Identifier: BSD-2-Clause -->
+
 # FreeBSD-i915-LinuxKPI
 
-Experimental FreeBSD DRM/i915 workaround for a reproducible GEM backing-page data-loss condition observed on Intel Skylake (HD Graphics 520, PCI ID `8086:1916`) under FreeBSD 15.1-RELEASE-p6 with `drm-612-kmod 6.12.85.1501000_2`.
+Experimental, FreeBSD-specific i915 GEM shmem backing-page restoration work and regression tooling for a reproducible data-integrity failure involving WB mmap-offset mappings and the `DROP_UNBOUND` shrinker path.
 
-**Status: experimental; targeted local regression passed once after reboot. Not an upstream fix, not a general LinuxKPI repair, and not yet proven stable under long-duration workloads.**
+**Status: experimental candidate. The patch applies and builds against the documented DRM-kmod source. The Meteor Lake candidate module is present and loaded on the maintainer's laptop, but the GEM regression test has not yet been rerun against that loaded candidate. This is not an upstream fix or a generally supported driver package.**
 
-## Problem
+## Public repository and quick checkout
 
-A 4 MiB GEM object was marked `I915_MADV_WILLNEED`, mapped using `I915_MMAP_OFFSET_WB`, and filled with a deterministic 64-bit pattern. After triggering i915 `DROP_UNBOUND` through debugfs, the object still reported retained, but reading the mapping returned zero instead of the original first word (`0x9e3779b97f4a7c15`). The unmodified driver reproduced `RESULT=DATA_LOSS` twice on the Skylake test laptop.
-
-This is consistent with the class of issue discussed in [FreeBSD Bugzilla 298279](https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=298279), but that report concerned a different Intel generation. This repository records a separate local reproduction on Skylake.
-
-## Working mechanism
-
-Source inspection identified this likely sequence in the FreeBSD DRM/LinuxKPI path:
-
-1. i915 obtains backing pages from the GEM shmem VM object.
-2. A WB mmap-offset fault maps pages through the FreeBSD cdev device-pager path.
-3. LinuxKPI page insertion transfers the page association from the original shmem object to a device-pager object.
-4. On unmap, the device-pager association is removed but the original shmem association is not restored.
-5. GEM shrink/put-pages can then release a detached page.
-6. A later shmem fault can allocate a zero-filled replacement page while the object remains marked WILLNEED.
-
-This explanation is supported by the local reproducer and source-path inspection, but is not a formal proof for every workload or DRM backend.
-
-## Patch
-
-`patches/0001-i915-skylake-restore-shmem-pages.patch` adds a FreeBSD-only helper in `drivers/gpu/drm/i915/gem/i915_gem_pages.c`. It runs after mmap-offset unmapping and before the GEM backend drops pages.
-
-The helper is scoped to Skylake shmem GEM objects with struct-page backing, WILLNEED retention, a live reference, and valid backing pages. It checks the original shmem VM object slots, reinserts detached pages, and marks them dirty. It refuses to overwrite another resident page or take ownership of a page still associated with another object. Unsafe restoration returns an error.
-
-The patch deliberately does not widen support to Coffee Lake, other Intel generations, non-shmem objects, or other GEM backends. Each expansion requires independent reproduction and validation.
-
-## Local evidence
-
-Test platform: FreeBSD 15.1-RELEASE-p6 (amd64), Intel Skylake-U HD Graphics 520 (`8086:1916`), `drm-612-kmod 6.12.85.1501000_2`, Mesa 26.2.2, libdrm 2.4.134.
-
-| Driver | WB mmap / WILLNEED / DROP_UNBOUND test |
-|---|---|
-| Original module | `DATA_LOSS`, reproduced twice |
-| Candidate patched module | `DATA_PRESERVED`, one post-reboot run |
-
-Patch dry-run succeeded against the exact local drm-kmod source. Build command:
+The repository is public. The default `main` branch is intended to contain the current documented candidate and test harness.
 
 ```sh
-make -j2 KMODS=i915 SYSDIR=/usr/src/sys
+git clone https://github.com/lycupay-debug/FreeBSD-i915-LinuxKPI.git
+cd FreeBSD-i915-LinuxKPI
+git status --short --branch
 ```
 
-Recorded build result: `BUILD_EXIT=0`; `i915kms.ko` linked successfully. Candidate module SHA-256:
+To inspect the exact Meteor Lake candidate patch:
 
-```text
-fda3d77989589ba16db96b554eb47ebded022525b1a95a3bac1456dc09da55e6
-```
+- Patch: [patches/0002-i915-freebsd-gem-shmem-page-restore.patch](patches/0002-i915-freebsd-gem-shmem-page-restore.patch)
+- Investigation record: [docs/INVESTIGATION.md](docs/INVESTIGATION.md)
+- Patch usage and compatibility notes: [patches/README.md](patches/README.md)
 
-Patch SHA-256:
+## What the patch addresses
 
-```text
-3dd8796a883418bfcabf55bdef1e4e31448b7888858763acaa877de919cec5a3
-```
+The investigation reproduced a condition where a 4 MiB GEM object marked `I915_MADV_WILLNEED`, mapped with `I915_MMAP_OFFSET_WB`, and populated with a deterministic pattern lost data after the i915 `DROP_UNBOUND` shrinker was triggered. The object continued to report retained state, but reads returned zeroes.
 
-After a manual reboot, the candidate hash matched, the patched `i915kms.ko` was loaded, Skylake i915 initialization and DMC firmware loading succeeded, LightDM was running, and the same regression test returned `RESULT=DATA_PRESERVED` with exit status 0.
+The working model is a page-ownership/lifecycle mismatch between the i915 shmem GEM backend, LinuxKPI, FreeBSD VM objects, and the cdev device-pager teardown path. It remains a source-supported working model, not a formal proof for every workload or backend.
 
-**This does not prove that historical RCS0 GPU hangs are eliminated.** GPU HANG events were observed, but their complete causal relationship to this GEM data-loss defect remains unproven. Long-duration use, memory pressure, repeated shrink cycles, multiple objects, and error-path robustness remain unverified.
+## Patch variants
 
-## Contents
+| File | Intended scope | Evidence status |
+|---|---|---|
+| `patches/0001-i915-skylake-restore-shmem-pages.patch` | Original Skylake-only implementation | One successful post-reboot targeted data-preservation run was recorded |
+| `patches/0002-i915-freebsd-gem-shmem-page-restore.patch` | Meteor Lake port; removes the Skylake-only hardware guard while retaining shmem/state checks | Applies and builds; loaded on maintainer's Meteor Lake laptop; targeted runtime regression still pending |
 
-- `patches/`: kernel source patch
-- `tests/gem_wb_shmem_roundtrip.c`: standalone reproducer/regression test
-- `tests/run-gem-wb-shmem-test.sh`: helper to mount lindebugfs and run the test
-- `docs/INVESTIGATION.md`: incident timeline, code-path analysis, validation boundaries, and recovery notes
+The Meteor Lake patch does not cover TTM or LMEM backends. Do not assume support for other Intel generations, FreeBSD releases, drm-kmod revisions, or GEM backends without independent review and testing.
 
-## Build the test program
+## Compatibility and build evidence
 
-On the target FreeBSD system with DRM/libdrm headers installed:
+The Meteor Lake candidate was prepared against:
+
+- FreeBSD 15.2-BETA2, amd64
+- Intel Core Ultra 5 125H / Meteor Lake-P integrated graphics, PCI ID `8086:7d55`
+- drm-kmod 6.12.85 source, package baseline recorded as `drm-612-kmod-6.12.85.1502000_3`
+- Candidate build command: `make -j4 KMODS="dmabuf ttm drm i915"`
+- Candidate `i915kms.ko` SHA-256: `110d696361b2b476fbdfc8643968c7208c506250d609fe1e13c8a9438016bf0d`
+
+On 2026-11-18, the maintainer's laptop reported the same SHA-256 for `/boot/modules/i915kms.ko`; `kldstat` showed `i915kms.ko` loaded from that path, and the machine had booted after the module file's recorded modification time. This is strong evidence that the candidate was loaded at boot, but it is not a cryptographic measurement of the in-memory kernel image.
+
+**Not yet verified:** a fresh `RESULT=DATA_PRESERVED` run on the Meteor Lake laptop with the currently loaded candidate; repeated shrink cycles; memory-pressure stress; concurrent mmap/unmap; multiple-object behavior; and exceptional error-path stress.
+
+A prior one-day observation without the previously reported display corruption occurred while both this patch and GuC 1 were enabled. Since both variables changed together, the observation cannot attribute the improvement to either one. It does not establish that RCS0 hangs are fixed.
+
+## Apply the patch to a matching source tree
+
+Use a clean DRM-kmod source tree matching the documented 6.12.85 base. Do not apply this patch to an arbitrary Linux kernel or a different drm-kmod revision.
+
+From the root of the matching DRM-kmod source tree:
 
 ```sh
-cc -O2 -Wall -I/usr/local/include tests/gem_wb_shmem_roundtrip.c -L/usr/local/lib -ldrm -o tests/gem_wb_shmem_roundtrip
+git apply --check /path/to/FreeBSD-i915-LinuxKPI/patches/0002-i915-freebsd-gem-shmem-page-restore.patch
+git apply /path/to/FreeBSD-i915-LinuxKPI/patches/0002-i915-freebsd-gem-shmem-page-restore.patch
 ```
 
-Run only on a test machine, as root, with no valuable unsaved work:
+Or, using the traditional patch utility:
+
+```sh
+patch -p1 --dry-run < /path/to/FreeBSD-i915-LinuxKPI/patches/0002-i915-freebsd-gem-shmem-page-restore.patch
+patch -p1 < /path/to/FreeBSD-i915-LinuxKPI/patches/0002-i915-freebsd-gem-shmem-page-restore.patch
+```
+
+Build from the DRM-kmod source root using the target system's matching FreeBSD source tree and kernel configuration:
+
+```sh
+make -j4 KMODS="dmabuf ttm drm i915" SYSDIR=/usr/src/sys
+```
+
+The command is a record of the successful candidate build environment, not a guarantee that it will build unchanged against other source revisions or kernel ABIs. Review [patches/README.md](patches/README.md) before installing anything.
+
+## Build and run the regression test
+
+On FreeBSD with the DRM/libdrm development headers and `pkg-config` installed:
+
+```sh
+make -C tests clean all
+sh -n tests/run-gem-wb-shmem-test.sh
+```
+
+The runner must be executed as root (use `su -`) and requires a working i915 device plus the `lindebugfs` interface:
 
 ```sh
 su -
-sh tests/run-gem-wb-shmem-test.sh
+cd /path/to/FreeBSD-i915-LinuxKPI
+ITERATIONS=1 EXPECTED_SHA256=110d696361b2b476fbdfc8643968c7208c506250d609fe1e13c8a9438016bf0d sh tests/run-gem-wb-shmem-test.sh
 ```
 
-The test writes to i915 debugfs `i915_gem_drop_caches` and deliberately triggers the DROP_UNBOUND shrink path.
+**Safety:** the test writes to `i915_gem_drop_caches` and triggers `DROP_UNBOUND`, which affects the global i915 GEM shrinker, not only the test object. Run only on a recoverable test machine, outside important desktop workloads, with a known-good module and rollback path. The module-file hash check verifies the on-disk file only; it does not prove the identity of an already-loaded in-memory module.
 
-## Safety
+The test does not submit GPU command buffers. It validates CPU-visible GEM backing-page retention, not GPU scheduling, rendering correctness, or RCS0 hang behavior.
 
-- Experimental kernel-driver code; a bad module can prevent graphical startup or destabilize the machine.
-- Do not apply to unrelated hardware or FreeBSD/drm-kmod versions without review and testing.
-- Build against the exact target FreeBSD source tree, kernel configuration, and drm-kmod revision. The recorded `.ko` hash is not a portable binary guarantee.
-- Preserve a known-good original module and recovery path before installing.
-- Package upgrades/reinstalls may overwrite a locally installed module.
-- No warranty; use at your own risk.
+## Installation policy
 
-## References
-
-- [FreeBSD Bugzilla 298279](https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=298279) — related device-pager/GEM backing-page report.
-- [freebsd/drm-kmod issue 527](https://github.com/freebsd/drm-kmod/issues/527) — reported RCS0 preemption timeout / GPU hang.
-- [freebsd/drm-kmod issue 509](https://github.com/freebsd/drm-kmod/issues/509) — another reported RCS0 timeout.
-- [freebsd/drm-kmod](https://github.com/freebsd/drm-kmod) — upstream FreeBSD DRM port.
+This repository does not currently provide a package, installer, automatic kernel-module replacement, or supported binary distribution. Do not overwrite a working `i915kms.ko` without preserving the original file, verifying both hashes, preparing a tested recovery path, and planning a controlled reboot. Package upgrades may overwrite manually installed modules.
 
 ## License
 
-GPL-2.0-only. See `LICENSE`. The patch modifies Linux i915 code and is distributed under GPL-2.0-only. The repository uses the same license for the standalone reproducer and documentation for simplicity.
+This is a mixed-license repository; see [LICENSE](LICENSE) and [LICENSES/](LICENSES/). The i915-derived kernel patch remains GPL-2.0-only. The independently maintained test harness and project documentation are BSD-2-Clause. The repository as a whole must not be represented as uniformly BSD-licensed.
 
-## Meteor Lake port (2026-11-17)
+## References
 
-A second candidate patch, `patches/0002-i915-freebsd-gem-shmem-page-restore.patch`, ports the FreeBSD shmem backing-page restoration helper beyond the original Skylake-only guard. It retains the shmem/struct-page/WILLNEED/refcount/pages checks and does not target TTM or LMEM.
-
-The same 4 MiB WB mmap / WILLNEED / DROP_UNBOUND reproducer observed `RESULT=DATA_LOSS` on a Meteor Lake-P system running FreeBSD 15.2-BETA2 and `drm-612-kmod 6.12.85.1502000_3`. The candidate patch applies to the exact 6.12.85 source and the `i915kms.ko` candidate builds successfully. Runtime validation on Meteor Lake has **not** been performed; the candidate module has not been installed or loaded. See `docs/INVESTIGATION.md` for source/API review, build evidence, and the required A/B validation gate.
-
-### Building and running the regression test
-
-Build the userland test on FreeBSD with libdrm installed:
-
-```sh
-make -C tests
-```
-
-The runner supports `ITERATIONS`, `TEST_BIN`, `MODULE`, `EXPECTED_SHA256`, `MOUNTPOINT`, and `DROP_CACHES_NODE`. It verifies the on-disk module file hash when `EXPECTED_SHA256` is supplied, but that hash alone does not identify an already-loaded kernel image. The runner explicitly prints this limitation. Each iteration writes a 4 MiB deterministic pattern, triggers `DROP_UNBOUND`, checks WILLNEED retention, and verifies the entire mapping.
-
-Do not run the test during important graphics workloads: `DROP_UNBOUND` affects the i915 GEM shrinker globally, not only the test object. The candidate requires a controlled module A/B and reboot before it can be runtime-validated.
+- [FreeBSD drm-kmod](https://github.com/freebsd/drm-kmod)
+- [FreeBSD Bugzilla 298279](https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=298279)
+- [Investigation record](docs/INVESTIGATION.md)
