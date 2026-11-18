@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: MIT -->
-
+# 详细报告
+https://www.lycupaynotion.top/content/i915
 # FreeBSD-i915-LinuxKPI
 
 Experimental, FreeBSD-specific i915 GEM shmem backing-page restoration work and regression tooling for a reproducible data-integrity failure involving WB mmap-offset mappings and the `DROP_UNBOUND` shrinker path.
