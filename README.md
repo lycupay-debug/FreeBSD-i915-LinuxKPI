@@ -121,7 +121,7 @@ This repository does not currently provide a package, installer, automatic kerne
 
 ## License
 
-This is a mixed-license repository; see [LICENSE](LICENSE) and [LICENSES/](LICENSES/). The patch modifies an upstream i915 source file marked MIT; original upstream portions retain MIT terms, while project-authored additions are MIT. See the license map for the file-level distinction. The independently maintained test harness and project documentation are MIT. The repository as a whole must not be represented as uniformly BSD-licensed.
+Project-authored material in this repository is MIT-licensed. The patches modify an upstream i915 file that is also marked MIT; original upstream copyright and license notices remain applicable and must be preserved. See [LICENSE](LICENSE) and [LICENSES/MIT.txt](LICENSES/MIT.txt) for provenance and the license text.
 
 ## References
 
