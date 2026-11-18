@@ -1,8 +1,7 @@
 MIT License
 
-The upstream i915 source file modified by the patches in this repository identifies itself as MIT-licensed and carries the following copyright notice:
-
-Copyright © 2014-2016 Intel Corporation
+Copyright (c) 2026 FreeBSD-i915-LinuxKPI contributors
+Copyright (c) 2014-2016 Intel Corporation (upstream i915 portions)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +20,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-This file records the upstream license for the original i915 source portions.
-The project-authored additions in the patch files are separately licensed
-under BSD-2-Clause; see LICENSES/BSD-2-Clause.txt.
