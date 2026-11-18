@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: BSD-2-Clause -->
 # Investigation record
 
 ## Incident observations (2026-11-04)
@@ -118,3 +119,34 @@ Status: patch applies and candidate module builds; runtime regression is **not y
 ### Current validation status
 
 The patch source and module build are verified. The userland test harness now compiles cleanly and has guard-path validation. Candidate runtime behavior on Meteor Lake is **not yet tested**. A controlled test still requires explicit authorization to replace the on-disk module and reboot into it; keep the original module and recovery scripts available. A separate RCS0 hang investigation remains independent and unresolved.
+
+
+---
+
+## Runtime status update (2026-11-18)
+
+This section supersedes earlier statements in this document that the Meteor Lake candidate had not been installed or loaded. Those statements accurately described the state on 2026-11-17, before the subsequent module installation and reboot.
+
+### Read-only laptop inspection
+
+On 2026-11-18, the maintainer's current laptop reported:
+
+- OS: FreeBSD 15.2-BETA2, amd64.
+- GPU: Intel Meteor Lake-P, PCI ID `8086:7d55`.
+- `/boot/modules/i915kms.ko` SHA-256: `110d696361b2b476fbdfc8643968c7208c506250d609fe1e13c8a9438016bf0d`, matching the recorded candidate build.
+- `kldstat` lists `i915kms.ko` loaded from `/boot/modules/i915kms.ko`.
+- System boot time was later than the module file's modification time; `/etc/rc.conf` contains `kld_list="i915kms"`.
+- `hw.i915kms.enable_guc="1"` is configured in `/boot/loader.conf`.
+
+Together these observations strongly support that the candidate module was loaded at boot. They do not provide a cryptographic hash of the in-memory module image.
+
+### What has and has not been validated
+
+- **Verified:** the on-disk module hash matches the candidate build; the module is listed as loaded; the candidate source patch applies and the module build completed successfully in the recorded build environment.
+- **Not yet verified:** a fresh GEM WB mmap / WILLNEED / DROP_UNBOUND regression run against the currently loaded Meteor Lake candidate.
+- **Not yet verified:** repeated shrink cycles, memory-pressure stress, multiple objects, concurrent mmap/unmap, long-duration stability, and exceptional error paths.
+- **Unresolved separately:** RCS0 GPU hangs. The GEM reproducer does not submit GPU command buffers and cannot establish an RCS0 fix.
+
+A prior observation of no display corruption over approximately one day occurred with both the page-lifecycle patch and GuC 1 enabled. Because both were active together, no causal attribution can be made.
+
+Do not describe the Meteor Lake patch as a proven fix until the targeted regression and further stability tests have been completed.
