@@ -106,7 +106,7 @@ This repository does not currently provide a package, installer, automatic kerne
 
 ## License
 
-This is a mixed-license repository; see [LICENSE](LICENSE) and [LICENSES/](LICENSES/). The i915-derived kernel patch remains GPL-2.0-only. The independently maintained test harness and project documentation are BSD-2-Clause. The repository as a whole must not be represented as uniformly BSD-licensed.
+This is a mixed-license repository; see [LICENSE](LICENSE) and [LICENSES/](LICENSES/). The patch modifies an upstream i915 source file marked MIT; original upstream portions retain MIT terms, while project-authored additions are BSD-2-Clause. See the license map for the file-level distinction. The independently maintained test harness and project documentation are BSD-2-Clause. The repository as a whole must not be represented as uniformly BSD-licensed.
 
 ## References
 
