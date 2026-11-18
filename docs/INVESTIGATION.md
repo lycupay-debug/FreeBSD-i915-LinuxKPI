@@ -1,4 +1,4 @@
-<!-- SPDX-License-Identifier: BSD-2-Clause -->
+<!-- SPDX-License-Identifier: MIT -->
 # Investigation record
 
 ## Incident observations (2026-11-04)
@@ -150,3 +150,7 @@ Together these observations strongly support that the candidate module was loade
 A prior observation of no display corruption over approximately one day occurred with both the page-lifecycle patch and GuC 1 enabled. Because both were active together, no causal attribution can be made.
 
 Do not describe the Meteor Lake patch as a proven fix until the targeted regression and further stability tests have been completed.
+
+### GuC configuration clarification (2026-11-18)
+
+The currently recorded `hw.i915kms.enable_guc="1"` setting selects GuC submission in the i915 parameter bitmask. It is an independent driver configuration and is not required by the shmem page-restoration helper. The helper operates on CPU-visible GEM shmem page ownership and does not depend on GuC firmware or submission. The patch and GuC 1 were enabled together during the reported period without display corruption; there is no isolated A/B evidence that GuC 1 is necessary or that it caused the change. Keep GuC configuration as a separate variable in future validation.
