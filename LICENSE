@@ -1,11 +1,9 @@
-This repository contains components under different licenses. There is no single license that applies to every file.
+This repository contains components under different licenses. No single license applies to every file.
 
 ## License map
 
-- `patches/0001-*.patch` and `patches/0002-*.patch`: **GPL-2.0-only**. These patches modify and derive from Linux i915 code. See [LICENSES/GPL-2.0-only.txt](LICENSES/GPL-2.0-only.txt).
-- `tests/*` (the standalone reproducer, runner, and Makefile): **BSD-2-Clause**, for the original project-authored portions. See [LICENSES/BSD-2-Clause.txt](LICENSES/BSD-2-Clause.txt).
-- `README.md`, `docs/*`, and `patches/README.md`: **BSD-2-Clause**, for project-authored documentation. See [LICENSES/BSD-2-Clause.txt](LICENSES/BSD-2-Clause.txt).
+- `patches/0001-*.patch` and `patches/0002-*.patch` modify the upstream i915 file `drivers/gpu/drm/i915/gem/i915_gem_pages.c`, whose SPDX identifier is MIT in both Linux v6.12 and FreeBSD drm-kmod's drm_v6.12.85 branch. The upstream source retains its MIT terms and copyright notices. The project-authored additions in these patch files are licensed under BSD-2-Clause. See [LICENSES/MIT.txt](LICENSES/MIT.txt) and [LICENSES/BSD-2-Clause.txt](LICENSES/BSD-2-Clause.txt).
+- `tests/*` (standalone reproducer, runner, and Makefile): BSD-2-Clause for project-authored portions.
+- `README.md`, `docs/*`, and `patches/README.md`: BSD-2-Clause for project-authored documentation.
 
-Files copied from or derived from third-party projects retain their original copyright and license terms. This license map does not relicense Linux i915 source code or grant rights beyond those held by the respective copyright holders.
-
-The BSD-2-Clause terms are used for the project's independently authored materials to align with the permissive two-clause BSD license commonly used in the FreeBSD source tree. The kernel patch remains GPL-2.0-only; it cannot be relicensed as BSD merely by changing this repository's top-level license file.
+The FreeBSD source tree contains files under multiple licenses; BSD-2-Clause is a common license used in the project, not a single blanket license for every FreeBSD or drm-kmod file. This repository does not relicense upstream Linux/FreeBSD DRM source code. Preserve all upstream copyright and license notices when applying or redistributing the patch.
