@@ -121,7 +121,7 @@ This repository does not currently provide a package, installer, automatic kerne
 
 ## License
 
-Project-authored material in this repository is MIT-licensed. The patches modify an upstream i915 file that is also marked MIT; original upstream copyright and license notices remain applicable and must be preserved. See [LICENSE](LICENSE) and [LICENSES/MIT.txt](LICENSES/MIT.txt) for provenance and the license text.
+Project-authored material in this repository is MIT-licensed. The patches modify an upstream i915 file that is also marked MIT; original upstream copyright and license notices remain applicable and must be preserved. See [LICENSE](LICENSE) for the license text and this section for provenance.
 
 ## References
 
