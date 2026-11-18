@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-2-Clause
 CC?=cc
 CFLAGS?=-O2 -pipe
 CFLAGS+=-Wall -Wextra -Werror
