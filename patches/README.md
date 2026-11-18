@@ -2,6 +2,21 @@
 
 # Patch usage and compatibility
 
+## Prepare the matching upstream source
+
+The two patch files are **alternatives for different hardware/platform records**. Apply exactly one patch to a clean source tree; do not apply 0001 and 0002 sequentially.
+
+The documented upstream DRM source tag can be checked out with:
+
+```sh
+git clone https://github.com/freebsd/drm-kmod.git
+cd drm-kmod
+git checkout drm_v6.12.85
+git status --short
+```
+
+The FreeBSD kernel source under `/usr/src` must match the target kernel. Verify the installed kernel and source tree before building; do not assume that a matching DRM tag alone guarantees ABI compatibility.
+
 ## Meteor Lake candidate: `0002-i915-freebsd-gem-shmem-page-restore.patch`
 
 - Target source: FreeBSD drm-kmod 6.12.85 source tree used for the 15.2-BETA2 build.
@@ -20,13 +35,6 @@ make -j4 KMODS="dmabuf ttm drm i915" SYSDIR=/usr/src/sys
 ```
 
 The documented candidate build was successful with the recorded environment. This command is not a promise of compatibility with other drm-kmod commits, FreeBSD kernel ABIs, or hardware.
-
-Apply only after confirming the target source revision:
-
-```sh
-git apply --check /path/to/0002-i915-freebsd-gem-shmem-page-restore.patch
-git apply /path/to/0002-i915-freebsd-gem-shmem-page-restore.patch
-```
 
 The patch is a source change, not a binary module. Build it against the exact target FreeBSD source tree, kernel configuration, DRM-kmod revision, and ABI. Do not distribute the recorded `.ko` as a portable binary.
 
