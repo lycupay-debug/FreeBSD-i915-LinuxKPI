@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: BSD-2-Clause
+# SPDX-License-Identifier: MIT
 CC?=cc
 CFLAGS?=-O2 -pipe
 CFLAGS+=-Wall -Wextra -Werror
