@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: BSD-2-Clause */
+/* SPDX-License-Identifier: MIT */
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
