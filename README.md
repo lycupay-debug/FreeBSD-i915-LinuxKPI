@@ -1,4 +1,4 @@
-<!-- SPDX-License-Identifier: BSD-2-Clause -->
+<!-- SPDX-License-Identifier: MIT -->
 
 # FreeBSD-i915-LinuxKPI
 
@@ -100,13 +100,28 @@ ITERATIONS=1 EXPECTED_SHA256=110d696361b2b476fbdfc8643968c7208c506250d609fe1e13c
 
 The test does not submit GPU command buffers. It validates CPU-visible GEM backing-page retention, not GPU scheduling, rendering correctness, or RCS0 hang behavior.
 
+## GuC configuration
+
+GuC is **not a prerequisite for either GEM shmem page-restoration patch**. The patch addresses CPU-visible GEM backing-page ownership and restoration; it does not implement GuC firmware loading or GuC command submission.
+
+The maintainer's current Meteor Lake setup records `hw.i915kms.enable_guc="1"`, which selects GuC submission in the upstream i915 parameter bitmask. This was enabled alongside the candidate patch during a period without the previously observed display corruption, so that observation does not prove GuC 1 is required by the patch or that either change caused the improvement.
+
+Leave GuC at the target driver's default unless GuC submission is independently required and supported by the GPU, firmware package, and drm-kmod build. If intentionally enabling GuC submission, the loader setting is:
+
+```sh
+# /boot/loader.conf
+hw.i915kms.enable_guc="1"
+```
+
+This is a separate driver configuration choice; it is not part of patch application or compilation. Reboot is required for a loader.conf change to take effect. Confirm firmware load and submission status in boot/kernel logs before treating it as active. Do not use this setting as a workaround for GEM page-retention failures or RCS0 hangs.
+
 ## Installation policy
 
 This repository does not currently provide a package, installer, automatic kernel-module replacement, or supported binary distribution. Do not overwrite a working `i915kms.ko` without preserving the original file, verifying both hashes, preparing a tested recovery path, and planning a controlled reboot. Package upgrades may overwrite manually installed modules.
 
 ## License
 
-This is a mixed-license repository; see [LICENSE](LICENSE) and [LICENSES/](LICENSES/). The patch modifies an upstream i915 source file marked MIT; original upstream portions retain MIT terms, while project-authored additions are BSD-2-Clause. See the license map for the file-level distinction. The independently maintained test harness and project documentation are BSD-2-Clause. The repository as a whole must not be represented as uniformly BSD-licensed.
+This is a mixed-license repository; see [LICENSE](LICENSE) and [LICENSES/](LICENSES/). The patch modifies an upstream i915 source file marked MIT; original upstream portions retain MIT terms, while project-authored additions are MIT. See the license map for the file-level distinction. The independently maintained test harness and project documentation are MIT. The repository as a whole must not be represented as uniformly BSD-licensed.
 
 ## References
 
