@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: BSD-2-Clause
 set -eu
 TEST_BIN="${TEST_BIN:-$(dirname "$0")/gem_wb_shmem_roundtrip}"
 MOUNTPOINT="${MOUNTPOINT:-/mnt/lindebugfs}"
